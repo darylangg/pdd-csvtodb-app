@@ -1,0 +1,181 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controllerbase-app
+  namespace: app
+  labels:
+    name: controllerbase-app
+    tier: app01
+    env: dev
+
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      name: controllerbase-app
+      labels:
+        name: controllerbase-app
+        tier: app01
+        env: dev
+    spec:
+      containers:
+        - name: controllerbase-app
+          image: controllerbase-app:v1.0.0
+          resources:
+            limits:
+              memory: 500Mi
+              cpu: "300m"
+            requests:
+              memory: 500Mi
+              cpu: "200m"
+          ports:
+            - name: server-port
+              containerPort: 8080
+          env:
+            - name: jasypt.encryptor.password
+              valueFrom:
+                secretKeyRef:
+                  name: controllerbase-app
+                  key: jaspyt-password
+            - name: app.amqp.encryptedPass
+              valueFrom:
+                secretKeyRef:
+                  name: controllerbase-app
+                  key: producer.password
+            - name: ing.amqp.encryptedPass
+              valueFrom:
+                secretKeyRef:
+                  name: controllerbase-app
+                  key: consumer.password
+            - name: app.amqp.ssl_keyPassword
+              valueFrom:
+                secretKeyRef:
+                  name: controllerbase-app
+                  key: producer.ssl_keyPassword
+            - name: ing.amqp.ssl_keyPassword
+              valueFrom:
+                secretKeyRef:
+                  name: controllerbase-app
+                  key: consumer.ssl_keyPassword
+          volumeMounts:
+            - mountPath: ./certs
+              name: certs-volume
+            - mountPath: ./logs
+              name: logging-volume
+            - mountPath: ./application.properties
+              subPath: "application.properties"
+              name: config-volume
+            - mountPath: /encrypted.properties
+              subPath: "encrypted.properties"
+              name: config-volume
+            - mountPath: ./out
+              name: csv-volume
+          imagePullPolicy: Never
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
+      volumes:
+        - name: certs-volume
+          secret:
+            secretName: controllerbase-app
+            items:
+              - key: ca-chain
+                path: ca-chain.crt
+              - key: amqp-ing-client-cert
+                path: pdd-ing2_amqp_controllerbase-app.crt
+              - key: amqp-ing-client-key
+                path: pdd-ing2_amqp_controllerbase-app.key
+              - key: amqp-app-client-cert
+                path: pdd-app1_amqp_controllerbase-app.crt
+              - key: amqp-app-client-key
+                path: pdd-app1_amqp_controllerbase-app.key
+        - name: logging-volume
+          persistentVolumeClaim:
+            claimName: controllerbase-app-logs-pvc
+        - name: config-volume
+          configMap:
+            name: controllerbase-app-config
+        - name: csv-volume
+            persistentVolumeClaim:
+              claimName: controllerbase-app-csv-pvc
+      restartPolicy: Always
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - pdd-dev-app01
+      tolerations:
+        - key: node.kubernetes.io/unreachable
+          operator: Exists
+          effect: NoSchedule
+  selector:
+    matchLabels:
+      name: controllerbase-app
+      tier: app01
+      env: dev
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: controllerbase-app
+  namespace: app
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: vault-store
+  target:
+    name: controllerbase-app
+    creationPolicy: Owner
+  data:
+    - secretKey: ca-chain
+      remoteRef:
+        key: pdd-dev-app/data/certs/ca-chain
+        property: ca-cert
+    - secretKey: amqp-app-client-cert
+      remoteRef:
+        key: pdd-dev-app/data/certs/pdd-app1_amqp_controllerbase-app
+        property: clientCert
+    - secretKey: amqp-app-client-key
+      remoteRef:
+        key: pdd-dev-app/data/certs/pdd-app1_amqp_controllerbase-app
+        property: clientKey
+    - secretKey: amqp-ing-client-cert
+      remoteRef:
+        key: pdd-dev-app/data/certs/pdd-ing2_amqp_controllerbase-app
+        property: clientCert
+    - secretKey: amqp-ing-client-key
+      remoteRef:
+        key: pdd-dev-app/data/certs/pdd-ing2_amqp_controllerbase-app
+        property: clientKey
+    - secretKey: jaspyt-password
+      remoteRef:
+        key: pdd-dev-app/data/secrets/encrypted-password
+        property: encrypted-password
+    - secretKey: consumer.password
+      remoteRef:
+        key: pdd-dev-app/data/secrets/encrypted-amqp-passwords
+        property: consumer.password
+    - secretKey: consumer.ssl_keyPassword
+      remoteRef:
+        key: pdd-dev-app/data/secrets/encrypted-amqp-passwords
+        property: consumer.ssl_keyPassword
+    - secretKey: producer.password
+      remoteRef:
+        key: pdd-dev-app/data/secrets/encrypted-amqp-passwords
+        property: producer.password
+    - secretKey: producer.ssl_keyPassword
+      remoteRef:
+        key: pdd-dev-app/data/secrets/encrypted-amqp-passwords
+        property: producer.ssl_keyPassword

@@ -1,0 +1,37 @@
+syntax = "proto3";
+package common;
+
+option java_package = "org.common.protobuf";
+option java_outer_classname = "CommonProto";
+option csharp_namespace = "CommonProto";
+
+message Common
+{
+  int64 timestamp = 1; // epoch timestamp with +8H
+  string messageId = 2;
+  string correlationId = 3;
+  string sourceId = 4;
+  string destId = 5;
+  string vertical= 6;
+  string messageType= 7;
+}
+
+message Data
+{
+    Common common = 1;
+    bytes body = 2;
+}
+
+enum RpcType
+{
+    INIT = 0;
+    CONTROL = 1;
+    REPLY = 2;
+}
+
+message Rpc
+{
+    Common common = 1;
+    RpcType rpcType = 2;
+    bytes body = 3; 
+}

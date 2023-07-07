@@ -1,0 +1,44 @@
+include:
+  - project: "wog/jtc/jtc-sdd/govtech-jtc-summit/cicdbase"
+    ref: "v1.1.0"
+    file: 
+      - "java/BUILD.gitlab-ci.yml"      
+      - "java/SCAN.gitlab-ci.yml"
+      - "common/DEPLOY.gitlab-ci.yml"
+
+# variables:
+  # WORKING_DIR: "./" # OPTIONAL. Set to your working directory. Default="./"
+
+
+build-job:
+  # variables:
+  #   MAVEN_IMAGE: "maven:3-eclipse-temurin-11" # OPTIONAL. Pin Maven Image to specific version.
+  extends: .maven-build
+
+
+# Runs two jobs in parallel. sonarqube-scan & dockerize-job
+sonarqube-job:
+  # variables:
+    # SONAR_URL: $SONAR_DEVELOPER_URL # Set to 'SONAR_COMMUNITY_URL' if using Community Edition
+    # SONAR_TOKEN: $SONAR_DEVELOPER_TOKEN # Set to 'SONAR_COMMUNITY_TOKEN' if using Community Edition
+    # SONAR_SOURCES: "." # Comma-seperated, source file locations
+    # SONAR_BINARIES: "**/*.*" # Class files
+    # SONAR_EXCLUSIONS: "**/protobuf/**/*.java" # Excluded files and paths
+  extends: .sonarqube-scan
+  needs: ["build-job"]
+
+
+dockerize-job:
+  # variables:
+  #   DOCKERFILE_PATH: "Dockerfile"
+  extends: .dockerize
+  needs: ["build-job"]
+
+
+deploy-job:
+  tags:
+    - jtc-sdd-pdd-devops 
+#   variables:
+#     DEPLOY_BRANCH: gitlab-ci
+  extends: .deploy-on-prem
+  needs: ["dockerize-job"]

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="30">
+    <Properties>
+        <Property name="LOG_PATTERN">
+            %d{yyyy-MM-dd HH:mm:ss.SSS zzz}{Asia/Singapore} [%-40.40c] --> %m%n%ex
+        </Property>
+        <Property name="baseDir">logs</Property>
+    </Properties>
+    <Appenders>
+        <Console name="ConsoleAppender" target="SYSTEM_OUT" follow="true">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </Console>
+        <!-- filePattern determines the granularity -->
+        <RollingFile
+                name="RollingFile"
+                fileName="${baseDir}/info.log"
+                filePattern="${baseDir}/%d{yyyy-MM}{Asia/Singapore}/%d{yyyy-MM-dd}{Asia/Singapore}/%d{yyyy-MM-dd-HH}{Asia/Singapore}.log"
+        >
+            <PatternLayout>
+                <Pattern>"${LOG_PATTERN}"</Pattern>
+            </PatternLayout>
+            <Policies>
+                <!--
+                interval refers to interval of granularity
+                eg. if file pattern has daily granularity, interval 5 would mean 5 days
+
+                modulate true means the intervals will be "even"
+                eg. if granularity is hour and app is run at 3:30, the next rollover will be at 4
+                if false is set, it will be at 4:30 instead
+                -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <!-- each file size -->
+                <SizeBasedTriggeringPolicy size="2MB"/>
+            </Policies>
+            <!--
+            max number of files
+            eg if every file is 5mb and max is 30, maximum log size is 150mb for the time period
+            -->
+            <DefaultRolloverStrategy max="1">
+                <!-- maxDepth indicates how many directories to search-->
+                <Delete basePath="${baseDir}" maxDepth="3">
+                    <!-- age refers to how old the file is -->
+                    <IfFileName glob="*/*/*.log">
+                        <IfLastModified age="P90D"/>
+                    </IfFileName>
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+
+    </Appenders>
+
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="ConsoleAppender" />
+        </Root>
+        <Logger name="org.csvtodb" level="info" additivity="true">
+            <AppenderRef ref="RollingFile" />
+        </Logger>
+
+    </Loggers>
+
+</Configuration>

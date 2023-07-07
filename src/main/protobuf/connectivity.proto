@@ -1,0 +1,45 @@
+syntax = "proto3";
+package connectivity;
+
+option java_package = "org.connectivity.protobuf";
+option java_outer_classname = "ConnectivityProto";
+option csharp_namespace = "ConnectivityProto";
+
+/*
+messageTypes to be used with common.Data.body:
+- DeviceConnectivity
+- SystemConnectivity
+*/
+
+enum DeviceState
+{
+  DEVICE_CONN_UNDEFINED = 0;
+  DISCONNECTED_FR_SOURCE = 1;
+  DISCONNECTED_FR_ING = 2;
+  DISCONNECTED_FR_APP = 3;
+  CONNECTED=4;
+}
+
+enum SystemState
+{
+  SYSTEM_CONN_UNDEFINED = 0;
+  DOWN= 1 ;	
+  UP= 2 ;	
+  UNKNOWN = 3;
+}
+
+message DeviceConnectivity
+{  
+  string deviceId = 1;
+  string building1 = 2;
+  DeviceState deviceState = 3;
+}
+
+message SystemConnectivity
+{
+  string systemId = 1;
+  string building2 = 2;
+  SystemState systemState = 3;
+}
+
+
