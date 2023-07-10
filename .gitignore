@@ -14,5 +14,6 @@ buildNumber.properties
 .mvn/
 certs/
 logs/
-out/
-/data/
+csv/
+/completed/
+/completed/
