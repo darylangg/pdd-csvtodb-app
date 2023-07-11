@@ -19,10 +19,34 @@ public class CSVRoute extends RouteBuilder {
 
     JacksonDataFormat jsonDataFormat = new JacksonDataFormat();
 
+    @Value("${csv.readDirectory}")
+    private String readDirectory;
+
+    @Value("${csv.completedDirectory}")
+    private String completedDirectory;
+
+    @Value("${csv.cronInterval}")
+    private String cronInterval;
+
+    @Value("${hapi.url}")
+    private String hapiUrl;
+
     @Override
+    @SuppressWarnings("unchecked")
     public void configure() throws Exception {
-        from("file:csv?recursive=true&delete=true&scheduler=quartz&scheduler.cron=0/10+*+*+*+*+?")
-                .routeId("CSV Scheduler Route")
+        String fileReadURI = "file:"
+                .concat(readDirectory)
+                .concat("?recursive=true")
+                .concat("&delete=true")
+                .concat("&scheduler=quartz")
+                .concat("&scheduler.cron=" + cronInterval);
+
+        String fileOutURI = "file:"
+                .concat(completedDirectory);
+
+        from(fileReadURI)
+            .routeId("CSV Scheduler Route")
+                .log("Processing ${headers.CamelFileName}")
             .process(exchange->{
                 exchange.setProperty("data", exchange.getIn().getBody());
                 exchange.setProperty("csvHeaders", exchange.getIn().getHeaders());
@@ -32,14 +56,13 @@ public class CSVRoute extends RouteBuilder {
                 exchange.getIn().setBody(exchange.getProperty("data"));
                 exchange.getIn().setHeaders((Map<String, Object>) exchange.getProperty("csvHeaders"));
             })
-            .to("file:completed");
+            .to(fileOutURI);
 
         from("direct:sendToDB")
                 .routeId("DB Route")
             .unmarshal(csvDataFormat)
             .process(exchange -> {
                 // Get the CSV data
-                @SuppressWarnings("unchecked")
                 List<List<String>> csvData = (List<List<String>>) exchange.getIn().getBody();
 
                 String fileName = (String) exchange.getMessage().getHeader(Exchange.FILE_NAME);
@@ -65,6 +88,6 @@ public class CSVRoute extends RouteBuilder {
                 exchange.getIn().setHeader("vertical", vertical);
             })
             .marshal(jsonDataFormat)
-            .to("http://10.2.5.51:3001/api/v1/lift/data");
+            .toD("http://"+ hapiUrl +"/api/v1/${headers.vertical}/data");
     }
 }
