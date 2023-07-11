@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>org.csvtodb</groupId>
-	<artifactId>pdd-csvtodb-app</artifactId>
+	<artifactId>csvtodb-app</artifactId>
 	<version>v1.0.0</version>
-	<name>pdd-csvtodb-app</name>
+	<name>csvtodb-app</name>
 	<description>CSV to DB for ODP Verticals</description>
 	<properties>
 		<java.version>11</java.version>

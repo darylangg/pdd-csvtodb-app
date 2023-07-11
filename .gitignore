@@ -15,5 +15,6 @@ buildNumber.properties
 certs/
 logs/
 csv/
-/completed/
-/completed/
+/csv/completed/
+/csv/completed/
+/csv/error/
